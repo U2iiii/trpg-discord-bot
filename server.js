@@ -1,4 +1,3 @@
-// server.js（更新済み）
 const express = require('express');
 const bodyParser = require('body-parser');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
@@ -12,9 +11,11 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildScheduledEvents,
-    GatewayIntentBits.GuildVoiceStates
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMessageReactions
   ],
-  partials: [Partials.Channel]
+  partials: [Partials.Channel, Partials.Message, Partials.Reaction]
 });
 
 client.once('ready', () => {
@@ -28,6 +29,7 @@ const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = 'https://trpg-discord-bot-7gpv.onrender.com/oauth/callback';
 const REQUIRED_GUILD_ID = '1369927990439448711';
 const REQUIRED_ROLE_ID = '1369969519384072252';
+const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
 
 app.use(bodyParser.json());
 
@@ -79,6 +81,25 @@ app.get('/oauth/callback', async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).send('OAuth処理中にエラーが発生しました');
+  }
+});
+
+app.post('/post-session', async (req, res) => {
+  const { title, maxPlayers, gm, sessionId } = req.body;
+
+  try {
+    const channel = await client.channels.fetch(DISCORD_CHANNEL_ID);
+    if (!channel || !channel.isTextBased()) return res.status(500).send('チャンネルが見つからない');
+
+    const msg = await channel.send({
+      content: `📢 新しいセッションが募集開始！\n\n**タイトル:** ${title}\n**GM:** ${gm ? 'あり' : '未定'}\n**募集人数:** ${maxPlayers}人\n\n👍 リアクションで参加を表明できます！\nID: \`${sessionId}\``
+    });
+
+    await msg.react('👍');
+    res.status(200).send('メッセージ送信完了');
+  } catch (err) {
+    console.error('投稿エラー:', err);
+    res.status(500).send('メッセージ投稿に失敗しました');
   }
 });
 
