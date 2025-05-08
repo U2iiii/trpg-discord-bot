@@ -2,6 +2,11 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const fetch = require('node-fetch');
+const admin = require('firebase-admin');
+const serviceAccount = require('./serviceAccountKey.json');
+
+admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+const db = admin.firestore();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -100,6 +105,33 @@ app.post('/post-session', async (req, res) => {
   } catch (err) {
     console.error('投稿エラー:', err);
     res.status(500).send('メッセージ投稿に失敗しました');
+  }
+});
+
+client.on('messageReactionAdd', async (reaction, user) => {
+  try {
+    if (reaction.partial) await reaction.fetch();
+    if (user.bot) return;
+
+    if (reaction.emoji.name !== '👍') return;
+
+    const content = reaction.message.content;
+    const match = content.match(/ID: `(.+?)`/);
+    if (!match) return;
+
+    const sessionId = match[1];
+    const sessionRef = db.collection('sessions').doc(sessionId);
+    const doc = await sessionRef.get();
+    if (!doc.exists) return;
+
+    const data = doc.data();
+    if (data.currentPlayers.includes(user.id)) return;
+
+    const updatedPlayers = [...data.currentPlayers, user.id];
+    await sessionRef.update({ currentPlayers: updatedPlayers });
+    console.log(`${user.username} がセッション ${sessionId} に参加しました`);
+  } catch (e) {
+    console.error('リアクション処理エラー:', e);
   }
 });
 
