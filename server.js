@@ -75,7 +75,7 @@ app.get('/oauth/callback', async (req, res) => {
       return res.status(403).send('必要なロールを所持していないためアクセスできません。');
     }
 
-    res.send(`✅ 認証成功：ようこそ ${user.username}#${user.discriminator} さん！`);
+    res.redirect(`https://trpg-app-93d57.web.app/login-success.html?username=${encodeURIComponent(user.username + '#' + user.discriminator)}&id=${user.id}`);
   } catch (e) {
     console.error(e);
     res.status(500).send('OAuth処理中にエラーが発生しました');
