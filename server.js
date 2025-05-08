@@ -2,11 +2,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const fetch = require('node-fetch');
-const admin = require('firebase-admin');
-const serviceAccount = require('./serviceAccountKey.json');
-
-admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-const db = admin.firestore();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -109,67 +104,31 @@ app.post('/post-session', async (req, res) => {
 });
 
 client.on('messageReactionAdd', async (reaction, user) => {
-  try {
-    if (reaction.partial) await reaction.fetch();
-    if (user.bot) return;
+  if (reaction.partial) await reaction.fetch();
+  if (user.bot) return;
+  if (reaction.emoji.name !== '👍') return;
 
-    if (reaction.emoji.name !== '👍') return;
+  const content = reaction.message.content;
+  const match = content.match(/ID: `(.+?)`/);
+  if (!match) return;
 
-    const content = reaction.message.content;
-    const match = content.match(/ID: `(.+?)`/);
-    if (!match) return;
+  const sessionId = match[1];
+  const userId = user.id;
+  const username = user.username + '#' + user.discriminator;
 
-    const sessionId = match[1];
-    const sessionRef = db.collection('sessions').doc(sessionId);
-    const doc = await sessionRef.get();
-    if (!doc.exists) return;
-
-    const data = doc.data();
-    if (data.currentPlayers.includes(user.id)) return;
-
-    const updatedPlayers = [...data.currentPlayers, user.id];
-    await sessionRef.update({ currentPlayers: updatedPlayers });
-    console.log(`${user.username} がセッション ${sessionId} に参加しました`);
-  } catch (e) {
-    console.error('リアクション処理エラー:', e);
+  const jsSnippet = `
+await firebase.firestore().collection("sessions").doc("${sessionId}").update({
+  currentPlayers: firebase.firestore.FieldValue.arrayUnion("${userId}"),
+  usernames: {
+    ["${userId}"]: "${username}"
   }
 });
 
-app.post('/finalize-session', async (req, res) => {
-  const { guildId, title, date, sessionId } = req.body;
+await firebase.firestore().collection("users").doc("${userId}").collection("participation").doc("${sessionId}").set({
+  joinedAt: new Date()
+});`;
 
-  try {
-    const guild = await client.guilds.fetch(guildId);
-
-    const category = await guild.channels.create({ name: `📅 ${title}`, type: 4 });
-    const role = await guild.roles.create({ name: `参加者-${sessionId}`, color: 'Blue' });
-
-    const textChannel = await guild.channels.create({
-      name: `📖-${sessionId}-テキスト`,
-      type: 0,
-      parent: category.id
-    });
-
-    const voiceChannel = await guild.channels.create({
-      name: `🎤-${sessionId}-通話`,
-      type: 2,
-      parent: category.id
-    });
-
-    await guild.scheduledEvents.create({
-      name: title,
-      scheduledStartTime: new Date(date),
-      privacyLevel: 2,
-      entityType: 3,
-      channel: voiceChannel.id,
-      description: `セッション「${title}」が確定しました！`
-    });
-
-    res.status(200).send('イベント作成完了');
-  } catch (err) {
-    console.error('エラー:', err);
-    res.status(500).send('イベント作成中にエラーが発生しました');
-  }
+  console.log("🔁 以下のJSコードをWebで実行してください：\n", jsSnippet);
 });
 
 app.get('/', (req, res) => {
