@@ -1,3 +1,4 @@
+// server.js（更新済み）
 const express = require('express');
 const bodyParser = require('body-parser');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
@@ -6,7 +7,6 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Discord Bot クライアント
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -23,10 +23,11 @@ client.once('ready', () => {
 
 client.login(process.env.DISCORD_BOT_TOKEN);
 
-// ✅ Discord OAuth2 設定
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = 'https://trpg-discord-bot-7gpv.onrender.com/oauth/callback'; // ←あなたのRenderのURLに変更
+const REDIRECT_URI = 'https://trpg-discord-bot-7gpv.onrender.com/oauth/callback';
+const REQUIRED_GUILD_ID = '1369927990439448711';
+const REQUIRED_ROLE_ID = '1369969519384072252';
 
 app.use(bodyParser.json());
 
@@ -51,7 +52,6 @@ app.get('/oauth/callback', async (req, res) => {
         redirect_uri: REDIRECT_URI,
       })
     });
-
     const tokenData = await tokenRes.json();
     const accessToken = tokenData.access_token;
 
@@ -60,34 +60,36 @@ app.get('/oauth/callback', async (req, res) => {
     });
     const user = await userRes.json();
 
-    const guildRes = await fetch('https://discord.com/api/users/@me/guilds', {
+    const guildMemberRes = await fetch(`https://discord.com/api/users/@me/guilds/${REQUIRED_GUILD_ID}/member`, {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
-    const guilds = await guildRes.json();
 
-    res.send(`ログイン成功：${user.username}#${user.discriminator}<br><pre>${JSON.stringify(guilds, null, 2)}</pre>`);
+    if (!guildMemberRes.ok) {
+      return res.status(403).send('このサーバーに参加していないためアクセスできません。');
+    }
+
+    const memberData = await guildMemberRes.json();
+    const hasRole = memberData.roles.includes(REQUIRED_ROLE_ID);
+
+    if (!hasRole) {
+      return res.status(403).send('必要なロールを所持していないためアクセスできません。');
+    }
+
+    res.send(`✅ 認証成功：ようこそ ${user.username}#${user.discriminator} さん！`);
   } catch (e) {
     console.error(e);
     res.status(500).send('OAuth処理中にエラーが発生しました');
   }
 });
 
-// 🔔 セッション確定通知API（既存の処理）
 app.post('/finalize-session', async (req, res) => {
   const { guildId, title, date, sessionId } = req.body;
 
   try {
     const guild = await client.guilds.fetch(guildId);
 
-    const category = await guild.channels.create({
-      name: `📅 ${title}`,
-      type: 4
-    });
-
-    const role = await guild.roles.create({
-      name: `参加者-${sessionId}`,
-      color: 'Blue'
-    });
+    const category = await guild.channels.create({ name: `📅 ${title}`, type: 4 });
+    const role = await guild.roles.create({ name: `参加者-${sessionId}`, color: 'Blue' });
 
     const textChannel = await guild.channels.create({
       name: `📖-${sessionId}-テキスト`,
@@ -101,7 +103,7 @@ app.post('/finalize-session', async (req, res) => {
       parent: category.id
     });
 
-    const event = await guild.scheduledEvents.create({
+    await guild.scheduledEvents.create({
       name: title,
       scheduledStartTime: new Date(date),
       privacyLevel: 2,
@@ -117,7 +119,6 @@ app.post('/finalize-session', async (req, res) => {
   }
 });
 
-// 🔄 スリープ防止Ping
 app.get('/', (req, res) => {
   res.status(200).send('Bot is alive!');
 });
