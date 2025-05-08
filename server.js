@@ -30,6 +30,8 @@ const REDIRECT_URI = 'https://trpg-discord-bot-7gpv.onrender.com/oauth/callback'
 const REQUIRED_GUILD_ID = '1369927990439448711';
 const REQUIRED_ROLE_ID = '1369969519384072252';
 const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
+const PARTICIPATION_ENDPOINT = process.env.PARTICIPATION_ENDPOINT; // e.g. 'https://your-site.com/react-participation'
+const PARTICIPATION_SECRET = process.env.PARTICIPATION_SECRET;
 
 app.use(bodyParser.json());
 
@@ -116,19 +118,25 @@ client.on('messageReactionAdd', async (reaction, user) => {
   const userId = user.id;
   const username = user.username + '#' + user.discriminator;
 
-  const jsSnippet = `
-await firebase.firestore().collection("sessions").doc("${sessionId}").update({
-  currentPlayers: firebase.firestore.FieldValue.arrayUnion("${userId}"),
-  usernames: {
-    ["${userId}"]: "${username}"
+  try {
+    const res = await fetch(PARTICIPATION_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${PARTICIPATION_SECRET}`
+      },
+      body: JSON.stringify({ sessionId, userId, username })
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(`参加送信失敗 (${res.status}):`, text);
+    } else {
+      console.log(`✅ ${username} の参加リクエストをWebに送信しました`);
+    }
+  } catch (e) {
+    console.error('Webへの参加送信エラー:', e);
   }
-});
-
-await firebase.firestore().collection("users").doc("${userId}").collection("participation").doc("${sessionId}").set({
-  joinedAt: new Date()
-});`;
-
-  console.log("🔁 以下のJSコードをWebで実行してください：\n", jsSnippet);
 });
 
 app.get('/', (req, res) => {
