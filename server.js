@@ -141,6 +141,8 @@ client.on('messageReactionAdd', async (reaction, user) => {
       console.error(`❌ 参加リクエスト失敗 (${response.status})`);
     } else {
       console.log(`✅ ${username} の参加リクエストを送信しました`);
+      console.log('[リアクション処理] 抽出されたセッションID:', sessionId);
+      console.log('[リアクション処理] fullUrl:', fullUrl);
     }
   } catch (e) {
     console.error('❌ HTTPリクエスト送信エラー:', e);
