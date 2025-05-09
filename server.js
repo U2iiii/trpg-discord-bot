@@ -1,8 +1,3 @@
-const cors = require('cors');
-app.use(cors({
-  origin: 'https://trpg-app-93d57.web.app'
-}));
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
@@ -39,6 +34,12 @@ const PARTICIPATION_ENDPOINT = process.env.PARTICIPATION_ENDPOINT; // e.g. 'http
 const PARTICIPATION_SECRET = process.env.PARTICIPATION_SECRET;
 
 app.use(bodyParser.json());
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://trpg-app-93d57.web.app');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
 
 app.get('/login', (req, res) => {
   const url = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify%20guilds%20guilds.members.read`;
