@@ -144,25 +144,39 @@ client.once('ready', () => {
   });
 
   cron.schedule('0 0 * * *', async () => {
-    console.log('🕘 リマインド処理開始');
-    try {
-      const response = await fetch('https://trpg-app-93d57.web.app/public/today-sessions.json');
-      const sessions = await response.json();
+  console.log('🕘 リマインド処理開始');
+  try {
+    const response = await fetch('https://trpg-app-93d57.web.app/public/today-sessions.json');
+    const sessions = await response.json();
 
-      const channel = await client.channels.fetch(DISCORD_CHANNEL_ID);
-      if (!channel || !channel.isTextBased()) return;
+    const channel = await client.channels.fetch(DISCORD_CHANNEL_ID);
+    if (!channel || !channel.isTextBased()) return;
 
-      for (const session of sessions) {
-        const roleMention = session.roleId ? `<@&${session.roleId}>` : '';
-        const start = new Date(session.finalDate).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-        await channel.send(`📣 本日開催のセッションリマインド！\n\n📖 タイトル: ${session.title}\n🕒 開始時間: ${start}\n👥 参加者: ${roleMention}`);
+    const today = new Date();
+    const ymd = today.toISOString().split('T')[0];
+
+    for (const session of sessions) {
+      const roleMention = session.roleId ? `<@&${session.roleId}>` : '';
+      const start = new Date(session.finalDate).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+      await channel.send(`📣 本日開催のセッションリマインド！\n\n📖 タイトル: ${session.title}\n🕒 開始時間: ${start}\n👥 参加者: ${roleMention}`);
+
+      // ✅ 翌日の完了処理対象として確認
+      const finalYmd = new Date(session.finalDate).toISOString().split('T')[0];
+      if (finalYmd <= ymd && session.status === 'confirmed') {
+        await fetch(`https://firestore.googleapis.com/v1/projects/trpg-app-93d57/databases/(default)/documents/sessions/${session.id}?updateMask.fieldPaths=status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: { status: { stringValue: 'completed' } } })
+        });
+        console.log(`✅ セッション ${session.id} を完了済みに更新`);
       }
-    } catch (error) {
-      console.error('リマインド送信エラー:', error);
     }
-  }, {
-    timezone: 'UTC'
-  });
+  } catch (error) {
+    console.error('リマインド送信エラー:', error);
+  }
+}, {
+  timezone: 'UTC'
+});
 
   app.listen(PORT, () => console.log(`🌐 サーバー起動: ${PORT}`));
 });
