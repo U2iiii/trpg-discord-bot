@@ -118,26 +118,22 @@ client.on('messageReactionAdd', async (reaction, user) => {
   const userId = user.id;
   const username = user.username + '#' + user.discriminator;
 
-  try {
-    const res = await fetch(PARTICIPATION_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${PARTICIPATION_SECRET}`
-      },
-      body: JSON.stringify({ sessionId, userId, username })
-    });
+  const baseUrl = process.env.REACT_PAGE_URL;
+  const token = process.env.SHARED_SECRET;
+  const fullUrl = `${baseUrl}?sessionId=${sessionId}&userId=${userId}&username=${encodeURIComponent(username)}&token=${token}`;
 
-    if (!res.ok) {
-      const text = await res.text();
-      console.error(`参加送信失敗 (${res.status}):`, text);
+  try {
+    const response = await fetch(fullUrl);
+    if (!response.ok) {
+      console.error(`❌ 参加リクエスト失敗 (${response.status})`);
     } else {
-      console.log(`✅ ${username} の参加リクエストをWebに送信しました`);
+      console.log(`✅ ${username} の参加リクエストを送信しました`);
     }
   } catch (e) {
-    console.error('Webへの参加送信エラー:', e);
+    console.error('❌ HTTPリクエスト送信エラー:', e);
   }
 });
+
 
 app.get('/', (req, res) => {
   res.status(200).send('Bot is alive!');
