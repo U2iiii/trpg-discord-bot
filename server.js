@@ -162,13 +162,14 @@ client.once('ready', () => {
 
       // ✅ 翌日の完了処理対象として確認
       const finalYmd = new Date(session.finalDate).toISOString().split('T')[0];
-      if (finalYmd <= ymd && session.status === 'confirmed') {
-        await fetch(`https://firestore.googleapis.com/v1/projects/trpg-app-93d57/databases/(default)/documents/sessions/${session.id}?updateMask.fieldPaths=status`, {
+      if (isPast && session.status === 'completed') {
+        // 実施済みに変更
+        await fetch(`https://.../sessions/${session.id}?updateMask.fieldPaths=status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: { status: { stringValue: 'completed' } } })
+          body: JSON.stringify({ fields: { status: { stringValue: 'compsession' } } })
         });
-        console.log(`✅ セッション ${session.id} を完了済みに更新`);
+        console.log(`✅ セッション ${session.id} を実施済みに更新`);
       }
     }
   } catch (error) {
