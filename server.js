@@ -1,3 +1,8 @@
+const cors = require('cors');
+app.use(cors({
+  origin: 'https://trpg-app-93d57.web.app'
+}));
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
