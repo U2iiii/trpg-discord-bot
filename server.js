@@ -42,14 +42,12 @@ app.post('/post-session', async (req, res) => {
   try {
     const guild = await client.guilds.fetch(REQUIRED_GUILD_ID);
 
-    // ロール作成
     const role = await guild.roles.create({
       name: title,
       mentionable: true,
       reason: `セッション「${title}」のためのロール`
     });
 
-    // シークレットカテゴリ作成とチャンネル配置
     const category = await guild.channels.create({
       name: title,
       type: 4,
@@ -64,10 +62,8 @@ app.post('/post-session', async (req, res) => {
         }
       ]
     });
+
     console.log(`✅ カテゴリ作成成功: ${category.id}`);
-    } catch (error) {
-      console.error('❌ カテゴリ作成失敗:', error);
-    }
 
     await guild.channels.create({
       name: '全体',
@@ -113,11 +109,13 @@ app.post('/post-session', async (req, res) => {
     });
 
     res.status(200).json({ roleId: role.id });
+
   } catch (err) {
     console.error('投稿エラー:', err);
     res.status(500).send('メッセージ投稿に失敗しました');
   }
 });
+
 
 cron.schedule('0 0 * * *', async () => {
   console.log('🕘 リマインド処理開始');
