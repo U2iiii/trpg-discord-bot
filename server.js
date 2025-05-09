@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const fetch = require('node-fetch');
+const cron = require('node-cron');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,6 +13,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildScheduledEvents,
     GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMessageReactions
   ],
@@ -34,7 +36,6 @@ const REACT_PAGE_URL = process.env.REACT_PAGE_URL || 'https://trpg-app-93d57.web
 
 app.use(bodyParser.json());
 
-// CORS ヘッダー手動追加
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://trpg-app-93d57.web.app');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -104,20 +105,48 @@ app.post('/post-session', async (req, res) => {
   const { title, maxPlayers, gm, sessionId } = req.body;
 
   try {
+    const guild = await client.guilds.fetch(REQUIRED_GUILD_ID);
+    const role = await guild.roles.create({
+      name: title,
+      mentionable: true,
+      reason: `セッション「${title}」のためのロール`
+    });
+
     const channel = await client.channels.fetch(DISCORD_CHANNEL_ID);
     if (!channel || !channel.isTextBased()) return res.status(500).send('チャンネルが見つからない');
 
     const reactUrl = `${REACT_PAGE_URL}?sessionId=${sessionId}`;
 
-    const msg = await channel.send({
+    await channel.send({
       content: `📢 新しいセッションが募集開始！\n\n**タイトル:** ${title}\n**GM:** ${gm ? 'あり' : '未定'}\n**募集人数:** ${maxPlayers}人\n\n👉 [ここをクリックして参加する](${reactUrl})`
     });
 
-    res.status(200).send('メッセージ送信完了');
+    res.status(200).json({ roleId: role.id });
   } catch (err) {
     console.error('投稿エラー:', err);
     res.status(500).send('メッセージ投稿に失敗しました');
   }
+});
+
+cron.schedule('0 0 * * *', async () => {
+  console.log('🕘 リマインド処理開始');
+  try {
+    const response = await fetch('https://trpg-app-93d57.web.app/public/today-sessions.json');
+    const sessions = await response.json();
+
+    const channel = await client.channels.fetch(DISCORD_CHANNEL_ID);
+    if (!channel || !channel.isTextBased()) return;
+
+    for (const session of sessions) {
+      const roleMention = session.roleId ? `<@&${session.roleId}>` : '';
+      const start = new Date(session.finalDate).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+      await channel.send(`📣 本日開催のセッションリマインド！\n\n📖 タイトル: ${session.title}\n🕒 開始時間: ${start}\n👥 参加者: ${roleMention}`);
+    }
+  } catch (error) {
+    console.error('リマインド送信エラー:', error);
+  }
+}, {
+  timezone: 'UTC'
 });
 
 app.get('/', (req, res) => {
