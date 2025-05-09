@@ -46,6 +46,22 @@ app.options('*', (req, res) => {
 
 client.once('ready', () => {
   console.log(`✅ ログイン完了: ${client.user.tag}`);
+  
+  app.post('/assign-role', async (req, res) => {
+    const { userId, roleId } = req.body;
+    if (!userId || !roleId) return res.status(400).send('Missing userId or roleId');
+
+    try {
+      const guild = await client.guilds.fetch(REQUIRED_GUILD_ID);
+      const member = await guild.members.fetch(userId);
+      await member.roles.add(roleId);
+      console.log(`✅ ロール付与完了: ${userId} に ${roleId}`);
+      res.status(200).send('ロール付与完了');
+    } catch (err) {
+      console.error('ロール付与エラー:', err);
+      res.status(500).send('ロールの付与に失敗しました');
+    }
+  });
 
   app.post('/post-session', async (req, res) => {
     const { title, maxPlayers, gm, sessionId } = req.body;
