@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const fetch = require('node-fetch');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,10 +31,11 @@ const REDIRECT_URI = 'https://trpg-discord-bot-7gpv.onrender.com/oauth/callback'
 const REQUIRED_GUILD_ID = '1369927990439448711';
 const REQUIRED_ROLE_ID = '1369969519384072252';
 const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
-const PARTICIPATION_ENDPOINT = process.env.PARTICIPATION_ENDPOINT; // e.g. 'https://your-site.com/react-participation'
-const PARTICIPATION_SECRET = process.env.PARTICIPATION_SECRET;
+const REACT_PAGE_URL = process.env.REACT_PAGE_URL || 'https://trpg-app-93d57.web.app/react.html';
 
 app.use(bodyParser.json());
+
+// CORS ヘッダー手動追加
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://trpg-app-93d57.web.app');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -106,49 +108,18 @@ app.post('/post-session', async (req, res) => {
     const channel = await client.channels.fetch(DISCORD_CHANNEL_ID);
     if (!channel || !channel.isTextBased()) return res.status(500).send('チャンネルが見つからない');
 
+    const reactUrl = `${REACT_PAGE_URL}?sessionId=${sessionId}`;
+
     const msg = await channel.send({
-      content: `📢 新しいセッションが募集開始！\n\n**タイトル:** ${title}\n**GM:** ${gm ? 'あり' : '未定'}\n**募集人数:** ${maxPlayers}人\n\n👍 リアクションで参加を表明できます！\nID: \`${sessionId}\``
+      content: `📢 新しいセッションが募集開始！\n\n**タイトル:** ${title}\n**GM:** ${gm ? 'あり' : '未定'}\n**募集人数:** ${maxPlayers}人\n\n👉 [ここをクリックして参加する](${reactUrl})`
     });
 
-    await msg.react('👍');
     res.status(200).send('メッセージ送信完了');
   } catch (err) {
     console.error('投稿エラー:', err);
     res.status(500).send('メッセージ投稿に失敗しました');
   }
 });
-
-client.on('messageReactionAdd', async (reaction, user) => {
-  if (reaction.partial) await reaction.fetch();
-  if (user.bot) return;
-  if (reaction.emoji.name !== '👍') return;
-
-  const content = reaction.message.content;
-  const match = content.match(/ID: `(.+?)`/);
-  if (!match) return;
-
-  const sessionId = match[1];
-  const userId = user.id;
-  const username = user.username + '#' + user.discriminator;
-
-  const baseUrl = process.env.REACT_PAGE_URL;
-  const token = process.env.SHARED_SECRET;
-  const fullUrl = `${baseUrl}?sessionId=${sessionId}&userId=${userId}&username=${encodeURIComponent(username)}&token=${token}`;
-
-  try {
-    const response = await fetch(fullUrl);
-    if (!response.ok) {
-      console.error(`❌ 参加リクエスト失敗 (${response.status})`);
-    } else {
-      console.log(`✅ ${username} の参加リクエストを送信しました`);
-      console.log('[リアクション処理] 抽出されたセッションID:', sessionId);
-      console.log('[リアクション処理] fullUrl:', fullUrl);
-    }
-  } catch (e) {
-    console.error('❌ HTTPリクエスト送信エラー:', e);
-  }
-});
-
 
 app.get('/', (req, res) => {
   res.status(200).send('Bot is alive!');
