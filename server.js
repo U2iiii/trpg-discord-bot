@@ -132,7 +132,7 @@ client.once('ready', () => {
       const reactUrl = `${REACT_PAGE_URL}?sessionId=${sessionId}`;
 
       await channel.send({
-        content: `📢 新しいセッションが募集開始！\n\n**タイトル:** ${title}\n**GM:** ${gm}\n**募集人数:** ${maxPlayers}人\n\n👉 [ここをクリックして参加する](${reactUrl})`
+        content: `📢 新しいセッションが募集開始！\n\n**タイトル:** ${title}\n**GM:** ${gm}\n**募集人数:** ${recruitCount}人\n\n👉 [ここをクリックして参加する](${reactUrl})`
       });
 
       res.status(200).json({ roleId: role.id });
