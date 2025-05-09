@@ -64,7 +64,7 @@ client.once('ready', () => {
   });
 
   app.post('/post-session', async (req, res) => {
-    const { title, maxPlayers, gm, sessionId } = req.body;
+    const { title, recruitCount, gm, sessionId } = req.body;
 
     try {
       const guild = await client.guilds.fetch(REQUIRED_GUILD_ID);
