@@ -64,6 +64,10 @@ app.post('/post-session', async (req, res) => {
         }
       ]
     });
+    console.log(`✅ カテゴリ作成成功: ${category.id}`);
+    } catch (error) {
+      console.error('❌ カテゴリ作成失敗:', error);
+    }
 
     await guild.channels.create({
       name: '全体',
