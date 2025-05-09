@@ -44,6 +44,45 @@ app.options('*', (req, res) => {
   res.sendStatus(200);
 });
 
+app.get('/oauth/callback', async (req, res) => {
+  const code = req.query.code;
+  if (!code) {
+    return res.status(400).send("コードが見つかりません");
+  }
+
+  try {
+    const params = new URLSearchParams();
+    params.append('client_id', CLIENT_ID);
+    params.append('client_secret', CLIENT_SECRET);
+    params.append('grant_type', 'authorization_code');
+    params.append('code', code);
+    params.append('redirect_uri', REDIRECT_URI);
+
+    const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params
+    });
+
+    const tokenData = await tokenRes.json();
+    const userRes = await fetch('https://discord.com/api/users/@me', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` }
+    });
+
+    const user = await userRes.json();
+    const redirectUrl = new URL('https://trpg-app-93d57.web.app/login-success.html');
+    redirectUrl.searchParams.set('username', user.username);
+    redirectUrl.searchParams.set('id', user.id);
+
+    return res.redirect(redirectUrl.toString());
+
+  } catch (error) {
+    console.error('OAuthエラー:', error);
+    return res.status(500).send("OAuth 処理中にエラーが発生しました");
+  }
+});
+
+
 client.once('ready', () => {
   console.log(`✅ ログイン完了: ${client.user.tag}`);
   
