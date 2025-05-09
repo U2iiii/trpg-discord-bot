@@ -41,6 +41,13 @@ app.use((req, res, next) => {
   next();
 });
 
+app.options('*', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://trpg-app-93d57.web.app');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.sendStatus(200);
+});
+
 app.get('/login', (req, res) => {
   const url = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify%20guilds%20guilds.members.read`;
   res.redirect(url);
