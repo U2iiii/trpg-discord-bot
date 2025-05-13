@@ -28,21 +28,25 @@ const REQUIRED_ROLE_ID = '1369969519384072252';
 const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
 const REACT_PAGE_URL = process.env.REACT_PAGE_URL || 'https://trpg-app-93d57.web.app/react.html';
 
-app.use(bodyParser.json());
 
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://trpg-app-93d57.web.app');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  // 許可したいフロントエンド URL
+  const ALLOWED_ORIGIN = 'https://trpg-app-93d57.web.app';
+
+  res.setHeader('Access-Control-Allow-Origin',  ALLOWED_ORIGIN);
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+
+  // プリフライトリクエストはここで終了
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+
   next();
 });
 
-app.options('*', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://trpg-app-93d57.web.app');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.sendStatus(200);
-});
+app.use(bodyParser.json());
+
 
 app.get('/oauth/callback', async (req, res) => {
   const code = req.query.code;
