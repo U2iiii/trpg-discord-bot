@@ -109,7 +109,7 @@ client.once('ready', () => {
   app.post('/mention-host', async (req, res) => {
     const { sessionId, createdBy } = req.body;
     if (!createdBy) return res.status(400).send('Missing');
-    const channel1 = "1371765286109315122";
+    const channel1 = await client.channels.fetch(DISCORD_CHANNEL_ID2);
     await channel1.send({
         content: `**参加者が集まりました**\n**<@!**${createdBy}**>**`
       });
