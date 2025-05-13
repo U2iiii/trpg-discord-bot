@@ -110,6 +110,7 @@ client.once('ready', () => {
         content: `📢**参加者が集まりました**\n**<@!**${createdBy}**>**`
       });
     console.log(`✅ メンション: ${createdBy}`);
+    res.status(200).send('メンション完了');
   });
   
 
