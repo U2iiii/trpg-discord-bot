@@ -105,7 +105,7 @@ client.once('ready', () => {
   app.post('/mention-host', async (req, res) => {
     const { sessionId, createdBy } = req.body;
     if (!userId || !roleId) return res.status(400).send('Missing userId or roleId');
-    const channel = 1371765286109315122
+    const channel = "1371765286109315122";
     await channel.send({
         content: `📢**参加者が集まりました**\n**<@!**${createdBy}**>**`
       });
