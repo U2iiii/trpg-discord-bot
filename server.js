@@ -102,8 +102,18 @@ client.once('ready', () => {
     }
   });
 
+  app.post('/mention-host', async (req, res) => {
+    const { sessionId, createdBy } = req.body;
+    if (!userId || !roleId) return res.status(400).send('Missing userId or roleId');
+
+    await channel.send({
+        content: `📢**参加者が集まりました**\n**<@!**${createdBy}**>**`
+      });
+  });
+  
+
   app.post('/post-session', async (req, res) => {
-    const { title, recruitCount, gm, sessionId } = req.body;
+    const { title, recruitCount, gm, sessionId, genre, duration} = req.body;
 
     try {
       const guild = await client.guilds.fetch(REQUIRED_GUILD_ID);
@@ -171,7 +181,7 @@ client.once('ready', () => {
       const reactUrl = `${REACT_PAGE_URL}?sessionId=${sessionId}`;
 
       await channel.send({
-        content: `📢 新しいセッションが募集開始！\n\n**タイトル:** ${title}\n**GM:** ${gm}\n**募集人数:** ${recruitCount}人\n\n👉 [ここをクリックして参加する](${reactUrl})`
+        content: `📢 新しいセッションが募集開始！\n\n**タイトル:** ${title}\n**GM:** ${gm}\n**募集人数:** ${recruitCount}人\n**ジャンル**${genre}\n**所要時間**${duration}\n\n👉 [ここをクリックして参加する](${reactUrl})`
       });
 
       res.status(200).json({ roleId: role.id });
