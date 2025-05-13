@@ -112,7 +112,7 @@ client.once('ready', () => {
     if (!createdBy) return res.status(400).send('Missing');
     const channel = await client.channels.fetch(DISCORD_CHANNEL_ID2);
     await channel.send({
-        content: `**参加者が集まりました**\n**<@!**${createdBy}**>**`
+        content: `**参加者が集まりました**\n<@${createdBy}>`
       });
     console.log(`✅ メンション: ${createdBy}`);
     res.status(200).send('メンション完了');
