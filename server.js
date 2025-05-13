@@ -109,6 +109,7 @@ client.once('ready', () => {
     await channel.send({
         content: `📢**参加者が集まりました**\n**<@!**${createdBy}**>**`
       });
+    console.log(`✅ メンション: ${createdBy}`);
   });
   
 
