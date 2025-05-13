@@ -26,6 +26,7 @@ const REDIRECT_URI = 'https://trpg-discord-bot-7gpv.onrender.com/oauth/callback'
 const REQUIRED_GUILD_ID = '1369927990439448711';
 const REQUIRED_ROLE_ID = '1369969519384072252';
 const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
+const DISCORD_CHANNEL_ID2 = process.env.DISCORD_CHANNEL_ID2;
 const REACT_PAGE_URL = process.env.REACT_PAGE_URL || 'https://trpg-app-93d57.web.app/react.html';
 
 
@@ -106,7 +107,16 @@ client.once('ready', () => {
     }
   });
 
-  
+   app.post('/mention-host', async (req, res) => {
+    const { sessionId, createdBy } = req.body;
+    if (!createdBy) return res.status(400).send('Missing');
+    const channel = await client.channels.fetch(DISCORD_CHANNEL_ID2);
+    await channel.send({
+        content: `**参加者が集まりました**\n**<@!**${createdBy}**>**`
+      });
+    console.log(`✅ メンション: ${createdBy}`);
+    res.status(200).send('メンション完了');
+  });
   
 
   app.post('/post-session', async (req, res) => {
