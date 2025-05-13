@@ -109,8 +109,8 @@ client.once('ready', () => {
   app.post('/mention-host', async (req, res) => {
     const { sessionId, createdBy } = req.body;
     if (!createdBy) return res.status(400).send('Missing');
-    const channel1 = await client.channels.fetch(DISCORD_CHANNEL_ID2);
-    await channel1.send({
+    const channel = await client.channels.fetch(DISCORD_CHANNEL_ID2);
+    await channel.send({
         content: `**参加者が集まりました**\n**<@!**${createdBy}**>**`
       });
     console.log(`✅ メンション: ${createdBy}`);
